@@ -1,0 +1,49 @@
+[project]
+name = "specsync"
+version = "0.1.0"
+description = "Synchronize markdown specifications between a git repo and external workspace."
+authors = [{name = "Specsync Team"}]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+specsync = "specsync.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.8.22,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.specsync]
+workspace_subdir = "specs"
+repo_specs_dir = "specs"
+
+[tool.specsync.filter]
+require_expose = true
+match_project = true
+
+[tool.prek]
+default_hooks = ["ruff-lint", "ruff-format"]
+
+[tool.prek.hooks.ruff-lint]
+run = ["ruff", "check", "--force-exclude"]
+
+[tool.prek.hooks.ruff-format]
+run = ["ruff", "format"]
+stages = ["manual"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.6.8",
+    # Documentation dependencies
+    "sphinx>=7.0.0",
+    "myst-parser>=2.0.0",
+    "furo>=2024.0.0",
+    "sphinx-autobuild>=2021.0.0",
+    "sphinx-copybutton>=0.5.0",
+    "sphinxcontrib-mermaid>=0.9.0",
+]

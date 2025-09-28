@@ -1,0 +1,10 @@
+# environment
+.env
+.envrc
+
+# specifications mainly used by claude code / codex / gemini cli
+specs/
+docs/_build/
+
+# pycharm
+.idea
