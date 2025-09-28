@@ -1,0 +1,26 @@
+# SpecSync Configuration Example
+# This file shows all available configuration options
+
+# File patterns to include (supports glob patterns)
+include_patterns:
+  - "*.md"                    # All markdown files
+  - "docs/**/*.md"           # Markdown files in docs subdirectories
+  - "specs/**/*.markdown"    # Alternative markdown extension
+
+# File patterns to exclude (optional)
+exclude_patterns:
+  - "**/draft-*.md"         # Files starting with "draft-"
+  - "private/**"            # Files in private directories
+  - "*.tmp.md"              # Temporary files
+
+# Filter files based on frontmatter fields (optional)
+frontmatter_filter:
+  published: true           # Only include files with published: true
+  # status: "ready"         # Alternative: only files with status: ready
+  # tags: ["spec", "docs"]  # Only files with tags containing "spec" or "docs"
+
+# Preserve directory structure in workspace (default: true)
+preserve_structure: true
+
+# Debounce time for watch mode in seconds (default: 1.0)
+watch_debounce_seconds: 1.0
