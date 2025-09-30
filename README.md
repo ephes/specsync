@@ -18,12 +18,12 @@ It lets you **pull only the Markdown files you choose** (via frontmatter), keep 
 
 ## Documentation
 
-📚 **[Read the full documentation](./docs/index.md)**
+📚 **[Read the full documentation](https://specsync.readthedocs.io/en/latest/)**
 
-- [Installation Guide](./docs/installation.md)
-- [Usage Guide](./docs/usage.md)
-- [Configuration Reference](./docs/configuration.md)
-- [Architecture Overview](./docs/architecture.md)
+- [Installation Guide](https://specsync.readthedocs.io/en/latest/installation.html)
+- [Usage Guide](https://specsync.readthedocs.io/en/latest/usage.html)
+- [Configuration Reference](https://specsync.readthedocs.io/en/latest/configuration.html)
+- [Architecture Overview](https://specsync.readthedocs.io/en/latest/architecture.html)
 
 ---
 
