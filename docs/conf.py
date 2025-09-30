@@ -47,7 +47,7 @@ html_static_path = ["_static"]
 html_css_files: list[str] = []
 
 html_theme_options = {
-    "source_repository": "https://github.com/username/specsync",
+    "source_repository": "https://github.com/ephes/specsync",
     "source_branch": "main",
     "source_directory": "docs/",
 }
