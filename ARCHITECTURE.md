@@ -16,4 +16,11 @@ Workspace ──► Frontmatter Filter ──► Sync Engine ──► Repositor
         ◄──────────────────────────────────────────────────────
 ```
 
+## Conflict Semantics
+
+- Push writes the repo file plus injected `expose`/`project` frontmatter. Push and pull plans treat the
+  destination as unchanged when it equals that push payload (or the raw source), so round trips are `skip`.
+- Destination paths are not resolved; a symlinked file, parent directory or backup path is refused (`unsafe`).
+- Overwrites go through an exclusive temp file and `os.replace`, after copying the old file to `<file>.specsync-bak`.
+
 Additional details, including workflow examples and design rationale, live in the dedicated documentation site.

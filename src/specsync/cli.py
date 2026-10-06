@@ -95,10 +95,10 @@ def _cmd_pull(args) -> int:
     prompt_engine = None if config.force else PromptEngine(quiet=config.quiet)
     stats = execute_plan(plan, config, prompt_engine=prompt_engine)
     info(
-        f"Created: {stats.created}, Updated: {stats.updated}, Skipped: {stats.skipped}",
+        f"Created: {stats.created}, Updated: {stats.updated}, Skipped: {stats.skipped}, Refused: {stats.refused}",
         quiet=config.quiet,
     )
-    return 0
+    return 1 if stats.refused else 0
 
 
 def _cmd_push(args) -> int:
@@ -115,10 +115,10 @@ def _cmd_push(args) -> int:
     ensure_dir(config.workspace_specs_dir)
     stats = execute_plan(plan, config, prompt_engine=prompt_engine)
     info(
-        f"Created: {stats.created}, Updated: {stats.updated}, Skipped: {stats.skipped}",
+        f"Created: {stats.created}, Updated: {stats.updated}, Skipped: {stats.skipped}, Refused: {stats.refused}",
         quiet=config.quiet,
     )
-    return 0
+    return 1 if stats.refused else 0
 
 
 def _cmd_info(args) -> int:

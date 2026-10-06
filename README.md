@@ -138,6 +138,23 @@ Only notes with `expose: true` (and matching `project` when configured) are sync
 
 ---
 
+## Conflicts and Safety
+
+- **Injected metadata is not a change.** `push` adds `expose: true` (and `project`, or removes it when
+  `match_project = false`) to the workspace copy. Planning compares against exactly what push would
+  write, so a repo spec and its pushed copy count as `unchanged` in both directions. A forced `pull`
+  right after a `push` therefore leaves the repo file untouched.
+- **Real edits still conflict.** Any other difference is a `CONFLICT`, prompted for interactively or
+  overwritten with `--force`.
+- **Backups.** Before overwriting an existing file, SpecSync copies it to `<file>.specsync-bak` next to
+  it (replacing an older backup). Backups do not end in `.md`, so they are never synced.
+- **Destinations are never followed through symlinks.** If the destination file, any directory between
+  the specs root and the file, or the `.specsync-bak` path is a symlink (or not a regular file/directory),
+  the entry is shown as `UNSAFE` and refused. If the backup cannot be written (for example because its name
+  exceeds the filesystem's limit), the file is not overwritten either. The checks are repeated right before each write. A run that refuses any entry exits with status 1.
+
+---
+
 ## License
 
 MIT

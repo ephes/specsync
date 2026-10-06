@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+- A clean `push` no longer shows up as a `CONFLICT` on the next `push` or `pull`: plans now compare
+  against the payload push actually writes (including injected `expose`/`project` frontmatter).
+- `pull --force` right after a `push` no longer writes the workspace's injected frontmatter into the repo.
+
+### Security
+- Symlinked destinations are refused instead of followed: a symlinked destination file, intermediate
+  directory or backup path is planned as `UNSAFE`, skipped, and makes the run exit with status 1.
+- Atomic writes use an exclusive temp file instead of a predictable `<file>.tmp` path.
+- Overwriting an existing destination first copies it to `<file>.specsync-bak`; if that backup cannot be written, the file is not overwritten.
+
 ### Added
 - **Core CLI Application**
   - `specsync init` command to initialize a repository with specs directory
@@ -59,6 +70,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Parametrized tests for edge cases
   - 100% test coverage target
 
+- **Continuous Integration**
+  - GitHub Actions workflow running `ruff check` and `pytest` on Python 3.11 and 3.13 (actions pinned by
+    SHA, `permissions: contents: read`)
+
 ### Changed
 - N/A (Initial release)
 
@@ -66,10 +81,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - N/A
 
 ### Removed
-- N/A
-
-### Fixed
-- N/A
-
-### Security
 - N/A

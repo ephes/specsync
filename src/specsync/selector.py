@@ -45,7 +45,9 @@ def collect_workspace_documents(config) -> tuple[list[SpecDocument], list[str]]:
 
         relative = path.relative_to(base)
         workspace_path = path
-        repo_path = (config.repo_specs_dir / relative).resolve()
+        # Not resolved: symlinks on the destination side are checked (and refused)
+        # by the sync planner instead of being silently followed.
+        repo_path = config.repo_specs_dir / relative
 
         documents.append(
             SpecDocument(
@@ -85,7 +87,8 @@ def collect_repo_documents(config) -> tuple[list[SpecDocument], list[str]]:
             metadata_status = "invalid"
 
         relative = path.relative_to(base)
-        workspace_path = (config.workspace_specs_dir / relative).resolve()
+        # Not resolved: see collect_workspace_documents.
+        workspace_path = config.workspace_specs_dir / relative
 
         documents.append(
             SpecDocument(
@@ -100,6 +103,27 @@ def collect_repo_documents(config) -> tuple[list[SpecDocument], list[str]]:
         )
 
     return documents, warnings
+
+
+def load_document(path: Path, *, relative: Path, workspace_path: Path, repo_path: Path) -> SpecDocument:
+    """Parse a single markdown file into a SpecDocument (raises FrontmatterError)."""
+    text = read_text(path)
+    result = _parse(path, text)
+    frontmatter = result.frontmatter or {}
+    metadata_status = "valid"
+    if not result.had_frontmatter:
+        metadata_status = "missing"
+    elif not isinstance(frontmatter.get("expose"), bool):
+        metadata_status = "invalid"
+    return SpecDocument(
+        relative_path=relative,
+        workspace_path=workspace_path,
+        repo_path=repo_path,
+        frontmatter=frontmatter if result.had_frontmatter else None,
+        body=result.body,
+        metadata_status=metadata_status,
+        raw_text=text,
+    )
 
 
 def _parse(path: Path, text: str) -> FrontmatterResult:

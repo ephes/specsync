@@ -65,9 +65,15 @@ graph TD
 
 - **Scanning**: Gather candidate files from both the workspace and repository directories.
 - **Filtering**: Apply frontmatter rules (exposure and project matching).
-- **Diffing**: Compare timestamps and file hashes to detect changes.
-- **Conflict Resolution**: When both sides changed, prompt the user unless `--force` is supplied.
-- **Apply Changes**: Mirror files to the destination while preserving directory structure.
+- **Diffing**: Compare file contents. Push compares the destination with the exact payload it would write
+  (repo file plus injected `expose`/`project` frontmatter); pull treats the repo file as unchanged when the
+  workspace file equals that push payload. A push followed by a push or pull is therefore all `skip`.
+- **Destination safety**: Destination paths are built without resolving symlinks. An entry whose destination
+  file, intermediate directory or `.specsync-bak` path is a symlink (or not a regular file/directory), or
+  that escapes the destination root, is planned as `unsafe` and refused; the check is repeated right before writing.
+- **Conflict Resolution**: When the files differ, prompt the user unless `--force` is supplied.
+- **Apply Changes**: Copy the existing destination to `<file>.specsync-bak`, then write through an exclusive
+  temp file and an atomic `os.replace`, preserving directory structure.
 
 ## Frontmatter Filtering Logic
 

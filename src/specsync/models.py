@@ -8,7 +8,7 @@ from typing import Literal
 
 
 MetadataStatus = Literal["valid", "invalid", "missing", "metadata_injected"]
-PlanState = Literal["create", "update", "conflict", "skip"]
+PlanState = Literal["create", "update", "conflict", "skip", "unsafe"]
 SyncDirection = Literal["pull", "push"]
 
 
@@ -44,6 +44,7 @@ class ExecutionStats:
     created: int = 0
     updated: int = 0
     skipped: int = 0
+    refused: int = 0
 
     def add_created(self) -> None:
         self.created += 1
@@ -53,3 +54,6 @@ class ExecutionStats:
 
     def add_skipped(self) -> None:
         self.skipped += 1
+
+    def add_refused(self) -> None:
+        self.refused += 1

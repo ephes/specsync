@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
+import os
+import stat
 import shutil
+import tempfile
 from pathlib import Path
 from typing import Iterable
 
@@ -14,11 +18,123 @@ def ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def write_file_atomic(path: Path, content: str) -> None:
+BACKUP_SUFFIX = ".specsync-bak"
+
+
+def _default_file_mode() -> int:
+    umask = os.umask(0)
+    os.umask(umask)
+    return 0o666 & ~umask
+
+
+def _write_bytes_atomic(path: Path, data: bytes, *, stat_source: Path | None = None) -> None:
+    """Write ``data`` to ``path`` via a fresh temp file and an atomic rename.
+
+    The temp file is created exclusively (``mkstemp``), so a pre-existing file or
+    symlink with a predictable name is never followed. ``os.replace`` swaps the
+    directory entry itself, so a symlink at ``path`` would be replaced rather than
+    followed (callers still refuse symlinked destinations up front).
+    """
     ensure_dir(path.parent)
-    temp_path = path.with_suffix(path.suffix + ".tmp")
-    temp_path.write_text(content, encoding="utf-8")
-    temp_path.replace(path)
+    fd, temp_name = tempfile.mkstemp(dir=path.parent, prefix=".specsync-", suffix=".tmp")
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(data)
+        if stat_source is not None:
+            shutil.copystat(stat_source, temp_path)
+        elif path.is_file() and not path.is_symlink():
+            shutil.copymode(path, temp_path)
+        else:
+            os.chmod(temp_path, _default_file_mode())
+        os.replace(temp_path, path)
+    except BaseException:
+        temp_path.unlink(missing_ok=True)
+        raise
+
+
+def write_file_atomic(path: Path, content: str) -> None:
+    _write_bytes_atomic(path, content.encode("utf-8"))
+
+
+def backup_path_for(path: Path) -> Path:
+    return path.with_name(path.name + BACKUP_SUFFIX)
+
+
+def backup_file(path: Path) -> Path:
+    """Copy ``path`` to ``<path>.specsync-bak`` (replacing an older backup)."""
+    backup = backup_path_for(path)
+    _write_bytes_atomic(backup, path.read_bytes(), stat_source=path)
+    return backup
+
+
+def _lstat_mode(path: Path) -> int | None:
+    """Return the lstat mode of ``path`` or ``None`` if it does not exist."""
+    try:
+        return os.lstat(path).st_mode
+    except FileNotFoundError:
+        return None
+
+
+def unsafe_destination_reason(path: Path, root: Path) -> str | None:
+    """Return why writing to ``path`` under ``root`` is unsafe, or ``None`` if it is safe.
+
+    ``root`` must be an already resolved directory and ``path`` must be
+    ``root / relative`` without resolving symlinks. The
+    destination is refused when the file itself or any directory between
+    ``root`` and the file is a symlink, when a path component is not a
+    directory, when the file exists but is not a regular file, or when the path
+    escapes ``root``.
+    """
+    # The root was resolved when the configuration was loaded; if it (or one of
+    # its ancestors) has since been swapped for a symlink, it no longer resolves
+    # to itself and nothing below it can be trusted.
+    if root.is_symlink():
+        return f"destination root is a symlink: {root}"
+    try:
+        if root.resolve() != root:
+            return f"destination root moved: {root}"
+    except (OSError, RuntimeError):
+        return f"cannot resolve destination root {root}"
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return f"outside destination root {root}"
+    if ".." in relative.parts or not relative.parts:
+        return f"outside destination root {root}"
+
+    current = root
+    parts = relative.parts
+    for index, part in enumerate(parts):
+        current = current / part
+        try:
+            mode = _lstat_mode(current)
+        except OSError as exc:
+            return f"cannot inspect {current}: {exc}"
+        if mode is None:
+            continue
+        if stat.S_ISLNK(mode):
+            return f"symlink at {current}"
+        is_last = index == len(parts) - 1
+        if not is_last and not stat.S_ISDIR(mode):
+            return f"not a directory: {current}"
+        if is_last and not stat.S_ISREG(mode):
+            return f"not a regular file: {current}"
+
+    backup = backup_path_for(path)
+    try:
+        backup_mode = _lstat_mode(backup)
+    except OSError as exc:
+        if exc.errno != errno.ENAMETOOLONG:
+            return f"cannot inspect {backup}: {exc}"
+        # The backup cannot exist; an overwrite will be refused when writing it fails.
+        backup_mode = None
+    if backup_mode is not None and not stat.S_ISREG(backup_mode):
+        return f"backup path is not a regular file: {backup}"
+
+    if not is_within(root, path):
+        return f"outside destination root {root}"
+    return None
 
 
 def read_text(path: Path) -> str:
@@ -73,8 +189,7 @@ def validate_path_security(path: Path, root: Path, follow_symlinks: bool = False
 
 
 def copy_file(source: Path, target: Path) -> None:
-    ensure_dir(target.parent)
-    shutil.copy2(source, target)
+    _write_bytes_atomic(target, source.read_bytes(), stat_source=source)
 
 
 def append_gitignore(repo_root: Path, entry: str, comment: str = "Added by specsync") -> None:

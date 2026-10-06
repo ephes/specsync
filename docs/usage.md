@@ -22,7 +22,19 @@ Run `specsync --help` to view global flags and `specsync <command> --help` for p
 
 ```{warning}
 Use `--force` with care. Forcing a push can overwrite workspace changes if you are not careful about conflicts.
+The overwritten file is kept as `<file>.specsync-bak` next to it (only the latest backup is kept).
 ```
+
+## Plan States
+
+`--dry-run` prints one line per spec:
+
+| State | Meaning |
+| --- | --- |
+| `CREATE` | The destination file does not exist yet. |
+| `SKIP` | The destination already matches. For both directions, a workspace file that differs from the repo file only by the `expose`/`project` metadata that push injects counts as unchanged, so a push followed by a push or pull is all `SKIP`. |
+| `CONFLICT` | The files really differ. Interactive runs prompt; `--force` overwrites after writing a `.specsync-bak` backup; if the backup cannot be written, the file is left alone and the run exits with status 1. |
+| `UNSAFE` | The destination file, a directory on the way to it, or its `.specsync-bak` path is a symlink or not a regular file/directory. The entry is never written, and the run exits with status 1. |
 
 ## Common Workflows
 
