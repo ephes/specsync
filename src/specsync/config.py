@@ -195,15 +195,23 @@ def _get_tool_config(data: dict[str, Any]) -> dict[str, Any]:
     return tool.get("specsync", {})
 
 
-def _resolve_workspace_root(args: Any, tool_config: dict[str, Any]) -> Path:
+def configured_workspace_root(args: Any) -> Path | None:
+    """Return the workspace root from the CLI or environment, if configured."""
     candidate = getattr(args, "workspace_root", None) or os.getenv(
         "SPECSYNC_WORKSPACE_ROOT"
     )
     if not candidate:
+        return None
+    return Path(candidate).expanduser().resolve()
+
+
+def _resolve_workspace_root(args: Any, tool_config: dict[str, Any]) -> Path:
+    workspace_root = configured_workspace_root(args)
+    if workspace_root is None:
         raise ConfigError(
             "Workspace root not configured. Use --workspace-root or SPECSYNC_WORKSPACE_ROOT."
         )
-    return Path(candidate).expanduser().resolve()
+    return workspace_root
 
 
 def _resolve_project_name(

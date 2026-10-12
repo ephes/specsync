@@ -44,6 +44,10 @@ def test_dry_run_preserves_tree(repo, tmp_path, command, missing_workspace):
         "[tool.specsync.filter]\nrequire_expose = false\n",
         '[tool.specsync]\nrepo_specs_dir = "planning" # retain\n',
         "[tool.specsync]\nfilter = {require_expose = false}\n",
+        '[tool]\nspecsync = {repo_specs_dir = "planning"}\n',
+        "tool = {}\n",
+        "tool = {specsync = {filter = {require_expose = false}}}\n",
+        "[tool.other]\nkey = 1\n\n[tool.specsync.filter]\nmatch_project = true\n",
     ],
 )
 def test_init_parses_and_preserves_settings(repo, existing):
@@ -299,5 +303,39 @@ def test_empty_cli_directory_refused_and_empty_environment_is_unset(
     assert "repo_specs_dir from --repo-specs-dir" in "\n".join(errors)
     assert snapshot(tmp_path) == before
     monkeypatch.setenv("SPECSYNC_REPO_SPECS_DIR", "")
+    assert main(["init"]) == 0
+    assert (repo / "specs").is_dir()
+
+
+@pytest.mark.parametrize("existing", ["tool = 5\n", "[tool]\nspecsync = 5\n"])
+def test_init_non_table_configuration_preserves_tree(repo, tmp_path, errors, existing):
+    (repo / "pyproject.toml").write_text(existing)
+    before = snapshot(tmp_path)
+    assert main(["init"]) == 1
+    assert errors
+    assert snapshot(tmp_path) == before
+
+
+@pytest.mark.parametrize("source", ["cli", "env"])
+def test_init_refuses_symlinked_workspace_subdir_when_root_configured(
+    repo, tmp_path, monkeypatch, errors, source
+):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "specs").symlink_to(outside, target_is_directory=True)
+    args = ["init"]
+    if source == "cli":
+        monkeypatch.delenv("SPECSYNC_WORKSPACE_ROOT")
+        args += ["--workspace-root", str(vault)]
+    before = snapshot(tmp_path)
+    assert main(args) == 1
+    assert "workspace_subdir from default" in "\n".join(errors)
+    assert snapshot(tmp_path) == before
+
+
+def test_init_without_workspace_root_skips_workspace_containment(repo, monkeypatch):
+    monkeypatch.delenv("SPECSYNC_WORKSPACE_ROOT")
     assert main(["init"]) == 0
     assert (repo / "specs").is_dir()

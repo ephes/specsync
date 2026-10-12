@@ -109,6 +109,11 @@ passes the same check before any command reads or writes files:
 - the resolved directory stays inside its root, so a symlinked directory that
   leads outside the repository or workspace is refused.
 
+Init applies the same checks; the workspace containment check runs when a
+workspace root is configured through `--workspace-root` or
+`SPECSYNC_WORKSPACE_ROOT`. Init also adds missing defaults to inline-table
+configurations such as `specsync = {repo_specs_dir = "planning"}`.
+
 All configured values are checked, not only the one that takes effect. An
 invalid stored or environment value is reported even when `--repo-specs-dir`
 overrides it; fix or remove the invalid value. Absolute directories are no

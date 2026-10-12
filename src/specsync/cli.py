@@ -8,8 +8,14 @@ import tomllib
 from pathlib import Path
 
 import tomlkit
+from tomlkit.items import InlineTable, Table
 
-from .config import load_config, resolve_directories, validate_paths
+from .config import (
+    configured_workspace_root,
+    load_config,
+    resolve_directories,
+    validate_paths,
+)
 from .exceptions import ConfigError, FrontmatterError, InteractiveError, SpecsyncError
 from .fs import append_gitignore, ensure_dir, find_repo_root, write_file_atomic
 from .logging import error, info
@@ -167,7 +173,10 @@ def _cmd_init(args) -> int:
 def _ensure_specs_dir(repo_root: Path, args) -> None:
     data = tomllib.loads((repo_root / "pyproject.toml").read_text(encoding="utf-8"))
     _, repo_specs_dir = resolve_directories(
-        args, data.get("tool", {}).get("specsync", {}), repo_root=repo_root
+        args,
+        data.get("tool", {}).get("specsync", {}),
+        repo_root=repo_root,
+        workspace_root=configured_workspace_root(args),
     )
     target = repo_root / repo_specs_dir
     ensure_dir(target)
@@ -180,6 +189,17 @@ def _ensure_specs_dir(repo_root: Path, args) -> None:
             )
 
 
+def _child_table(parent, key: str):
+    """Return the table at ``key``, creating one that fits the parent's TOML form."""
+    if key not in parent:
+        inline = isinstance(parent, InlineTable)
+        parent[key] = tomlkit.inline_table() if inline else tomlkit.table()
+    child = parent[key]
+    if not isinstance(child, (Table, InlineTable)):
+        raise ConfigError(f"Expected a table at '{key}', found {type(child).__name__}.")
+    return child
+
+
 def _ensure_pyproject_block(path: Path, args) -> None:
     if path.is_symlink():
         raise ConfigError("Refusing to replace symlinked pyproject.toml.")
@@ -187,12 +207,17 @@ def _ensure_pyproject_block(path: Path, args) -> None:
     try:
         tomllib.loads(original)
         document = tomlkit.parse(original)
-        tool = document.setdefault("tool", tomlkit.table())
-        settings = tool.setdefault("specsync", tomlkit.table())
-        _, selected_dir = resolve_directories(args, settings, repo_root=path.parent)
+        tool = _child_table(document, "tool")
+        settings = _child_table(tool, "specsync")
+        _, selected_dir = resolve_directories(
+            args,
+            settings,
+            repo_root=path.parent,
+            workspace_root=configured_workspace_root(args),
+        )
         settings.setdefault("workspace_subdir", "specs")
         settings.setdefault("repo_specs_dir", selected_dir.as_posix())
-        filters = settings.setdefault("filter", tomlkit.table())
+        filters = _child_table(settings, "filter")
         filters.setdefault("require_expose", True)
         filters.setdefault("match_project", True)
         updated = tomlkit.dumps(document)
