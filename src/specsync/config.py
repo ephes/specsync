@@ -12,6 +12,7 @@ import tomllib
 
 from .exceptions import ConfigError
 from .fs import find_repo_root
+from .logging import info
 
 
 @dataclass
@@ -38,17 +39,16 @@ class Config:
 def load_config(args: Any, *, command: str) -> Config:
     repo_root = find_repo_root(Path.cwd())
     if repo_root is None:
-        raise ConfigError("Unable to locate git repository root. Run specsync inside a git repo.")
+        raise ConfigError(
+            "Unable to locate git repository root. Run specsync inside a git repo."
+        )
 
     pyproject_data = _load_pyproject(repo_root / "pyproject.toml")
     tool_config = _get_tool_config(pyproject_data)
 
     workspace_root = _resolve_workspace_root(args, tool_config)
     workspace_subdir = Path(tool_config.get("workspace_subdir", "specs"))
-    if getattr(args, "repo_specs_dir", None):
-        repo_specs_dir_config = Path(getattr(args, "repo_specs_dir"))
-    else:
-        repo_specs_dir_config = Path(tool_config.get("repo_specs_dir", "specs"))
+    repo_specs_dir_config = resolve_repo_specs_dir(args, tool_config)
 
     repo_specs_dir = (repo_root / repo_specs_dir_config).resolve()
     workspace_specs_dir = (workspace_root / workspace_subdir).resolve()
@@ -77,13 +77,31 @@ def load_config(args: Any, *, command: str) -> Config:
 def validate_paths(config: Config, *, command: str) -> None:
     if command == "pull":
         if not config.workspace_root.exists() and not config.dry_run:
-            raise ConfigError("Workspace root does not exist; set SPECSYNC_WORKSPACE_ROOT or create the directory.")
+            raise ConfigError(
+                "Workspace root does not exist; set SPECSYNC_WORKSPACE_ROOT or create the directory."
+            )
         if not config.workspace_specs_dir.exists() and not config.dry_run:
             raise ConfigError(
                 f"Workspace specs directory {config.workspace_specs_dir} not found. Create it or adjust workspace_subdir."
             )
-    if not config.repo_specs_dir.exists():
-        config.repo_specs_dir.mkdir(parents=True, exist_ok=True)
+    source = config.workspace_specs_dir if command == "pull" else config.repo_specs_dir
+    if config.dry_run and not source.exists():
+        info(
+            f"Source specs directory {source} not found; dry-run plan is empty.",
+            quiet=config.quiet,
+        )
+
+
+def resolve_repo_specs_dir(args: Any, tool_config: dict[str, Any]) -> Path:
+    """Resolve the directory setting shared by init and synchronization."""
+    candidate = (
+        getattr(args, "repo_specs_dir", None)
+        or os.getenv("SPECSYNC_REPO_SPECS_DIR")
+        or tool_config.get("repo_specs_dir", "specs")
+    )
+    if not isinstance(candidate, str) or not candidate:
+        raise ConfigError("repo_specs_dir must be a non-empty string.")
+    return Path(candidate)
 
 
 def _load_pyproject(path: Path) -> dict[str, Any]:
@@ -99,9 +117,13 @@ def _get_tool_config(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def _resolve_workspace_root(args: Any, tool_config: dict[str, Any]) -> Path:
-    candidate = getattr(args, "workspace_root", None) or os.getenv("SPECSYNC_WORKSPACE_ROOT")
+    candidate = getattr(args, "workspace_root", None) or os.getenv(
+        "SPECSYNC_WORKSPACE_ROOT"
+    )
     if not candidate:
-        raise ConfigError("Workspace root not configured. Use --workspace-root or SPECSYNC_WORKSPACE_ROOT.")
+        raise ConfigError(
+            "Workspace root not configured. Use --workspace-root or SPECSYNC_WORKSPACE_ROOT."
+        )
     return Path(candidate).expanduser().resolve()
 
 

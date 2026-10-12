@@ -63,7 +63,7 @@ def test_load_config_requires_workspace(monkeypatch, repo_layout):
         load_config(args, command="pull")
 
 
-def test_validate_paths_creates_repo_dir(monkeypatch, repo_layout, tmp_path):
+def test_validate_paths_does_not_create_repo_dir(monkeypatch, repo_layout, tmp_path):
     workspace = tmp_path / "vault"
     workspace.mkdir()
     args = make_args()
@@ -73,7 +73,7 @@ def test_validate_paths_creates_repo_dir(monkeypatch, repo_layout, tmp_path):
     specs_dir = config.repo_specs_dir
     assert not specs_dir.exists()
     validate_paths(config, command="push")
-    assert specs_dir.exists()
+    assert not specs_dir.exists()
 
 
 def test_project_name_resolution_order(monkeypatch, tmp_path):

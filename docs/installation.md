@@ -41,7 +41,7 @@ uv tool upgrade specsync
 Clone the repository and install from the local checkout.
 
 ```bash
-git clone https://github.com/username/specsync.git
+git clone https://github.com/ephes/specsync.git
 cd specsync
 uv sync  # Installs package in development mode with all dependencies
 ```

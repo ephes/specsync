@@ -84,3 +84,8 @@ export SPECSYNC_WORKSPACE_ROOT="/path/to/workspace"
 ```
 
 See {doc}`configuration` for all available environment variables.
+
+Dry-run in either direction is read-only: it creates no directories, files, or
+backups. A missing source specs directory produces an empty plan and a diagnostic
+(unless quiet). A missing pull destination is still shown in the plan; actual
+pull execution creates it. Use init to create an empty repo specs directory.

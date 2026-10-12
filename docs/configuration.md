@@ -86,3 +86,18 @@ title: Documentation Plan
 - `expose` controls visibility; only files with `true` are eligible for syncing when `require_expose` is enabled.
 - `project` lets you scope synchronization to a specific initiative.
 - Additional metadata is preserved but not interpreted directly by SpecSync.
+
+## Repository directory resolution
+
+For both init and synchronization, `--repo-specs-dir` overrides
+`SPECSYNC_REPO_SPECS_DIR`, then `[tool.specsync].repo_specs_dir`, then the
+`specs` default. Relative paths are resolved from the Git repository root;
+absolute paths are used directly. Init creates the selected directory and adds a
+repo-relative gitignore entry when it is within the repository. For directories
+outside the repository, it reports that no ignore entry is added. When the TOML
+directory setting is missing, init records the selected directory as its default;
+existing settings remain unchanged. Init refuses symlinked pyproject files.
+
+Init parses TOML and adds only missing settings, retaining existing values and
+comments. Comments or strings mentioning table names do not count as configuration.
+The resulting TOML is validated before atomic replacement; repeated init is idempotent.
