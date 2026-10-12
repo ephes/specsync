@@ -12,6 +12,7 @@ import tomllib
 
 from .exceptions import ConfigError
 from .fs import find_repo_root
+from .logging import info
 
 
 @dataclass
@@ -47,10 +48,7 @@ def load_config(args: Any, *, command: str) -> Config:
 
     workspace_root = _resolve_workspace_root(args, tool_config)
     workspace_subdir = Path(tool_config.get("workspace_subdir", "specs"))
-    if getattr(args, "repo_specs_dir", None):
-        repo_specs_dir_config = Path(getattr(args, "repo_specs_dir"))
-    else:
-        repo_specs_dir_config = Path(tool_config.get("repo_specs_dir", "specs"))
+    repo_specs_dir_config = resolve_repo_specs_dir(args, tool_config)
 
     repo_specs_dir = (repo_root / repo_specs_dir_config).resolve()
     workspace_specs_dir = (workspace_root / workspace_subdir).resolve()
@@ -86,8 +84,24 @@ def validate_paths(config: Config, *, command: str) -> None:
             raise ConfigError(
                 f"Workspace specs directory {config.workspace_specs_dir} not found. Create it or adjust workspace_subdir."
             )
-    if not config.repo_specs_dir.exists():
-        config.repo_specs_dir.mkdir(parents=True, exist_ok=True)
+    source = config.workspace_specs_dir if command == "pull" else config.repo_specs_dir
+    if config.dry_run and not source.exists():
+        info(
+            f"Source specs directory {source} not found; dry-run plan is empty.",
+            quiet=config.quiet,
+        )
+
+
+def resolve_repo_specs_dir(args: Any, tool_config: dict[str, Any]) -> Path:
+    """Resolve the directory setting shared by init and synchronization."""
+    candidate = (
+        getattr(args, "repo_specs_dir", None)
+        or os.getenv("SPECSYNC_REPO_SPECS_DIR")
+        or tool_config.get("repo_specs_dir", "specs")
+    )
+    if not isinstance(candidate, str) or not candidate:
+        raise ConfigError("repo_specs_dir must be a non-empty string.")
+    return Path(candidate)
 
 
 def _load_pyproject(path: Path) -> dict[str, Any]:
