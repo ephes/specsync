@@ -73,8 +73,10 @@ A missing source directory is reported as an empty plan. Init preserves existing
 TOML settings and comments and adds only missing defaults.
 
 `--repo-specs-dir` takes precedence over `SPECSYNC_REPO_SPECS_DIR`, the TOML
-setting, and the `specs` default, for both init and sync. Relative paths resolve
-from the Git repository root.
+setting, and the `specs` default, for both init and sync. Directory settings must be
+relative subdirectories (no absolute paths, no `..`) of the Git repository root
+or the workspace root; every configured value is validated, including one that a
+higher-precedence source overrides.
 
 Show current configuration:
 

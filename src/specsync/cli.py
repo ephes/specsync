@@ -9,7 +9,7 @@ from pathlib import Path
 
 import tomlkit
 
-from .config import load_config, resolve_repo_specs_dir, validate_paths
+from .config import load_config, resolve_directories, validate_paths
 from .exceptions import ConfigError, FrontmatterError, InteractiveError, SpecsyncError
 from .fs import append_gitignore, ensure_dir, find_repo_root, write_file_atomic
 from .logging import error, info
@@ -166,19 +166,12 @@ def _cmd_init(args) -> int:
 
 def _ensure_specs_dir(repo_root: Path, args) -> None:
     data = tomllib.loads((repo_root / "pyproject.toml").read_text(encoding="utf-8"))
-    repo_specs_dir = resolve_repo_specs_dir(
-        args, data.get("tool", {}).get("specsync", {})
+    _, repo_specs_dir = resolve_directories(
+        args, data.get("tool", {}).get("specsync", {}), repo_root=repo_root
     )
-    target = (repo_root / repo_specs_dir).resolve()
+    target = repo_root / repo_specs_dir
     ensure_dir(target)
-    try:
-        ignore_entry = target.relative_to(repo_root).as_posix()
-    except ValueError:
-        info(
-            f"Specs directory {target} is outside the repository; no gitignore entry added."
-        )
-    else:
-        append_gitignore(repo_root, ignore_entry, comment="Added by specsync")
+    append_gitignore(repo_root, repo_specs_dir.as_posix(), comment="Added by specsync")
     if getattr(args, "include_sample", False):
         sample = target / "sample-spec.md"
         if not sample.exists():
@@ -196,9 +189,9 @@ def _ensure_pyproject_block(path: Path, args) -> None:
         document = tomlkit.parse(original)
         tool = document.setdefault("tool", tomlkit.table())
         settings = tool.setdefault("specsync", tomlkit.table())
-        selected_dir = resolve_repo_specs_dir(args, settings)
+        _, selected_dir = resolve_directories(args, settings, repo_root=path.parent)
         settings.setdefault("workspace_subdir", "specs")
-        settings.setdefault("repo_specs_dir", str(selected_dir))
+        settings.setdefault("repo_specs_dir", selected_dir.as_posix())
         filters = settings.setdefault("filter", tomlkit.table())
         filters.setdefault("require_expose", True)
         filters.setdefault("match_project", True)

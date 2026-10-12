@@ -37,8 +37,8 @@ require_expose = true
 match_project = true
 ```
 
-- `workspace_subdir`: Subdirectory inside the workspace root containing synced files.
-- `repo_specs_dir`: Repository directory where SpecSync writes the synced files.
+- `workspace_subdir`: Relative subdirectory inside the workspace root containing synced files.
+- `repo_specs_dir`: Relative subdirectory of the repository where SpecSync writes the synced files.
 - `project_name`: Optional default project filter applied when pulling or pushing.
 - `require_expose`: Enforces `expose: true` in frontmatter before syncing.
 - `match_project`: Sync only specs whose `project` matches `project_name`.
@@ -91,12 +91,28 @@ title: Documentation Plan
 
 For both init and synchronization, `--repo-specs-dir` overrides
 `SPECSYNC_REPO_SPECS_DIR`, then `[tool.specsync].repo_specs_dir`, then the
-`specs` default. Relative paths are resolved from the Git repository root;
-absolute paths are used directly. Init creates the selected directory and adds a
-repo-relative gitignore entry when it is within the repository. For directories
-outside the repository, it reports that no ignore entry is added. When the TOML
-directory setting is missing, init records the selected directory as its default;
-existing settings remain unchanged. Init refuses symlinked pyproject files.
+`specs` default. Init creates the selected directory and adds a repo-relative
+gitignore entry. When the TOML directory setting is missing, init records the
+selected directory as its default; existing settings remain unchanged. Init
+refuses symlinked pyproject files.
+
+## Directory validation
+
+`repo_specs_dir` names a subdirectory of the Git repository root and
+`workspace_subdir` a subdirectory of the workspace root. Every configured value
+— the stored TOML setting, `SPECSYNC_REPO_SPECS_DIR`, and `--repo-specs-dir` —
+passes the same check before any command reads or writes files:
+
+- a non-empty string using `/` separators;
+- relative: no leading `/`, drive prefix, or `~`;
+- no `..` component, and not just `.`;
+- the resolved directory stays inside its root, so a symlinked directory that
+  leads outside the repository or workspace is refused.
+
+All configured values are checked, not only the one that takes effect. An
+invalid stored or environment value is reported even when `--repo-specs-dir`
+overrides it; fix or remove the invalid value. Absolute directories are no
+longer accepted for these settings.
 
 Init parses TOML and adds only missing settings, retaining existing values and
 comments. Comments or strings mentioning table names do not count as configuration.
