@@ -46,6 +46,8 @@ def test_dry_run_preserves_tree(repo, tmp_path, command, missing_workspace):
         "[tool.specsync]\nfilter = {require_expose = false}\n",
         '[tool]\nspecsync = {repo_specs_dir = "planning"}\n',
         "tool = {}\n",
+        '[tool.a]\nx = 1\n\n[project]\nname = "demo"\n\n[tool.specsync]\nrepo_specs_dir = "planning"\n',
+        '[tool.a]\nx = 1\n\n[project]\nname = "demo"\n\n[tool.b]\ny = 2\n',
         "tool = {specsync = {filter = {require_expose = false}}}\n",
         "[tool.other]\nkey = 1\n\n[tool.specsync.filter]\nmatch_project = true\n",
     ],

@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import MutableMapping
 import sys
 import tomllib
 from pathlib import Path
 
 import tomlkit
-from tomlkit.items import InlineTable, Table
+from tomlkit.items import InlineTable
 
 from .config import (
     configured_workspace_root,
@@ -195,7 +196,8 @@ def _child_table(parent, key: str):
         inline = isinstance(parent, InlineTable)
         parent[key] = tomlkit.inline_table() if inline else tomlkit.table()
     child = parent[key]
-    if not isinstance(child, (Table, InlineTable)):
+    # Separated sections of one table come back as a tomlkit proxy mapping.
+    if not isinstance(child, MutableMapping):
         raise ConfigError(f"Expected a table at '{key}', found {type(child).__name__}.")
     return child
 
