@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Fixed
+- Dry-run no longer creates missing repository directories; missing sources are diagnosed with an empty plan.
+- Init parses and preserves existing TOML tables, settings and comments, adds missing defaults, and replaces validated configuration atomically.
+- Repository specs directories now follow CLI → environment → TOML → default precedence for both init and sync.
+- `repo_specs_dir` and `workspace_subdir` are validated by one check for every source (stored TOML, environment, CLI): they must be relative subdirectories without `..` that stay inside the repository or workspace root. Invalid stored or environment values are reported even when `--repo-specs-dir` overrides them. Absolute paths are no longer accepted for these settings.
 - A clean `push` no longer shows up as a `CONFLICT` on the next `push` or `pull`: plans now compare
   against the payload push actually writes (including injected `expose`/`project` frontmatter).
 - `pull --force` right after a `push` no longer writes the workspace's injected frontmatter into the repo.

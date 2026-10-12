@@ -3,12 +3,22 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import MutableMapping
 import sys
+import tomllib
 from pathlib import Path
 
-from .config import load_config, validate_paths
+import tomlkit
+from tomlkit.items import InlineTable
+
+from .config import (
+    configured_workspace_root,
+    load_config,
+    resolve_directories,
+    validate_paths,
+)
 from .exceptions import ConfigError, FrontmatterError, InteractiveError, SpecsyncError
-from .fs import append_gitignore, ensure_dir, find_repo_root
+from .fs import append_gitignore, ensure_dir, find_repo_root, write_file_atomic
 from .logging import error, info
 from .prompt import PromptEngine
 from .sync import (
@@ -103,6 +113,7 @@ def _cmd_pull(args) -> int:
         return 0
 
     prompt_engine = None if config.force else PromptEngine(quiet=config.quiet)
+    ensure_dir(config.repo_specs_dir)
     stats = execute_plan(plan, config, prompt_engine=prompt_engine)
     info(
         f"Created: {stats.created}, Updated: {stats.updated}, Skipped: {stats.skipped}, Refused: {stats.refused}",
@@ -153,18 +164,24 @@ def _cmd_init(args) -> int:
     if not pyproject_path.exists():
         raise ConfigError("pyproject.toml not found; initialize a project first.")
 
+    _ensure_pyproject_block(pyproject_path, args)
     _ensure_specs_dir(repo_root, args)
-    _ensure_pyproject_block(pyproject_path)
 
     info("specsync initialization complete")
     return 0
 
 
 def _ensure_specs_dir(repo_root: Path, args) -> None:
-    repo_specs_dir = Path(args.repo_specs_dir or "specs")
-    target = (repo_root / repo_specs_dir).resolve()
+    data = tomllib.loads((repo_root / "pyproject.toml").read_text(encoding="utf-8"))
+    _, repo_specs_dir = resolve_directories(
+        args,
+        data.get("tool", {}).get("specsync", {}),
+        repo_root=repo_root,
+        workspace_root=configured_workspace_root(args),
+    )
+    target = repo_root / repo_specs_dir
     ensure_dir(target)
-    append_gitignore(repo_root, str(repo_specs_dir), comment="Added by specsync")
+    append_gitignore(repo_root, repo_specs_dir.as_posix(), comment="Added by specsync")
     if getattr(args, "include_sample", False):
         sample = target / "sample-spec.md"
         if not sample.exists():
@@ -173,13 +190,44 @@ def _ensure_specs_dir(repo_root: Path, args) -> None:
             )
 
 
-def _ensure_pyproject_block(path: Path) -> None:
-    data = path.read_text(encoding="utf-8")
-    if "[tool.specsync]" in data:
-        return
-    block = '\n[tool.specsync]\nworkspace_subdir = "specs"\nrepo_specs_dir = "specs"\n\n[tool.specsync.filter]\nrequire_expose = true\nmatch_project = true\n'
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(block)
+def _child_table(parent, key: str):
+    """Return the table at ``key``, creating one that fits the parent's TOML form."""
+    if key not in parent:
+        inline = isinstance(parent, InlineTable)
+        parent[key] = tomlkit.inline_table() if inline else tomlkit.table()
+    child = parent[key]
+    # Separated sections of one table come back as a tomlkit proxy mapping.
+    if not isinstance(child, MutableMapping):
+        raise ConfigError(f"Expected a table at '{key}', found {type(child).__name__}.")
+    return child
+
+
+def _ensure_pyproject_block(path: Path, args) -> None:
+    if path.is_symlink():
+        raise ConfigError("Refusing to replace symlinked pyproject.toml.")
+    original = path.read_text(encoding="utf-8")
+    try:
+        tomllib.loads(original)
+        document = tomlkit.parse(original)
+        tool = _child_table(document, "tool")
+        settings = _child_table(tool, "specsync")
+        _, selected_dir = resolve_directories(
+            args,
+            settings,
+            repo_root=path.parent,
+            workspace_root=configured_workspace_root(args),
+        )
+        settings.setdefault("workspace_subdir", "specs")
+        settings.setdefault("repo_specs_dir", selected_dir.as_posix())
+        filters = _child_table(settings, "filter")
+        filters.setdefault("require_expose", True)
+        filters.setdefault("match_project", True)
+        updated = tomlkit.dumps(document)
+        tomllib.loads(updated)
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ConfigError(f"Invalid specsync configuration in {path}: {exc}") from exc
+    if updated != original:
+        write_file_atomic(path, updated)
 
 
 if __name__ == "__main__":  # pragma: no cover
