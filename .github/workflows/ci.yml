@@ -1,8 +1,7 @@
 name: CI
 
-# Same commands as `just lint` and `just test`, run through uv directly. Tests use
+# Same checks as `just check`, run through uv directly. Tests use
 # temporary directories only, so no secrets, vaults or services are needed.
-# `ruff format --check` is not enforced yet: main predates a formatting pass.
 
 on:
   push:
@@ -24,7 +23,7 @@ env:
 
 jobs:
   check:
-    name: Lint and tests (Python ${{ matrix.python-version }})
+    name: Lint, formatting and tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -52,5 +51,7 @@ jobs:
         run: uv sync --all-groups
       - name: Lint (just lint)
         run: uv run ruff check src tests
+      - name: Formatting (just format-check)
+        run: uv run ruff format --check src/ tests/
       - name: Tests (just test)
         run: uv run pytest -q

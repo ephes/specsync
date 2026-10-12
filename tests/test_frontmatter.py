@@ -3,7 +3,11 @@ from textwrap import dedent
 
 import pytest
 
-from specsync.frontmatter import FrontmatterResult, parse_frontmatter, render_frontmatter
+from specsync.frontmatter import (
+    FrontmatterResult,
+    parse_frontmatter,
+    render_frontmatter,
+)
 from specsync.exceptions import FrontmatterError
 
 

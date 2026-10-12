@@ -46,7 +46,15 @@ def build_pull_plan(config: Config) -> SyncPlan:
         else:
             state = "conflict"
             reason = "differs from repo"
-        entries.append(PlanEntry(document=doc, source_path=source, target_path=target, state=state, reason=reason))
+        entries.append(
+            PlanEntry(
+                document=doc,
+                source_path=source,
+                target_path=target,
+                state=state,
+                reason=reason,
+            )
+        )
 
     return SyncPlan(direction="pull", entries=entries, warnings=warnings)
 
@@ -62,7 +70,9 @@ def build_push_plan(config: Config) -> SyncPlan:
         if unsafe:
             state = "unsafe"
             reason = f"refused: {unsafe}"
-            warnings.append(f"Refusing unsafe destination in workspace ({unsafe}): {target}")
+            warnings.append(
+                f"Refusing unsafe destination in workspace ({unsafe}): {target}"
+            )
         elif not target.exists():
             state = "create"
             reason = "missing in workspace"
@@ -72,7 +82,15 @@ def build_push_plan(config: Config) -> SyncPlan:
         else:
             state = "conflict"
             reason = "differs from workspace"
-        entries.append(PlanEntry(document=doc, source_path=source, target_path=target, state=state, reason=reason))
+        entries.append(
+            PlanEntry(
+                document=doc,
+                source_path=source,
+                target_path=target,
+                state=state,
+                reason=reason,
+            )
+        )
 
     return SyncPlan(direction="push", entries=entries, warnings=warnings)
 
@@ -111,10 +129,14 @@ def summarize_plan(plan: SyncPlan) -> PlanSummary:
     skip = sum(1 for e in plan.entries if e.state == "skip")
     unsafe = sum(1 for e in plan.entries if e.state == "unsafe")
     conflicts = update
-    return PlanSummary(create=create, update=update, conflicts=conflicts, skip=skip, unsafe=unsafe)
+    return PlanSummary(
+        create=create, update=update, conflicts=conflicts, skip=skip, unsafe=unsafe
+    )
 
 
-def execute_plan(plan: SyncPlan, config: Config, *, prompt_engine: PromptEngine | None = None) -> ExecutionStats:
+def execute_plan(
+    plan: SyncPlan, config: Config, *, prompt_engine: PromptEngine | None = None
+) -> ExecutionStats:
     stats = ExecutionStats()
     for entry in plan.entries:
         if entry.state == "skip":
@@ -259,7 +281,9 @@ def log_plan(plan: SyncPlan, config: Config) -> None:
     summary = summarize_plan(plan)
     info(
         f"Plan: {summary.create} create, {summary.update} update/conflicts, {summary.skip} skip"
-        + (f", {summary.unsafe} refused (unsafe destination)" if summary.unsafe else ""),
+        + (
+            f", {summary.unsafe} refused (unsafe destination)" if summary.unsafe else ""
+        ),
         quiet=config.quiet,
     )
     for warning in plan.warnings:

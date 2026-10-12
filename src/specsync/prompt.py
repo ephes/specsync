@@ -41,7 +41,9 @@ class PromptEngine:
             return "skip"
 
         if not sys.stdin.isatty():
-            raise InteractiveError("Interactive confirmation required; rerun with --force to proceed")
+            raise InteractiveError(
+                "Interactive confirmation required; rerun with --force to proceed"
+            )
 
         # Show file information with modification times
         self._show_file_info(source_path, target_path)
@@ -53,7 +55,9 @@ class PromptEngine:
             try:
                 choice = input().strip()
             except EOFError as exc:
-                raise InteractiveError("No input available for confirmation; rerun with --force") from exc
+                raise InteractiveError(
+                    "No input available for confirmation; rerun with --force"
+                ) from exc
 
             # Case-sensitive options
             if choice == "o":
@@ -77,14 +81,18 @@ class PromptEngine:
         """Show modification times for the files being compared."""
         try:
             source_mtime = source_path.stat().st_mtime
-            source_time = datetime.fromtimestamp(source_mtime).strftime("%Y-%m-%d %H:%M:%S")
+            source_time = datetime.fromtimestamp(source_mtime).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
             info(f"  Source modified: {source_time}", quiet=self.quiet)
         except (OSError, FileNotFoundError):
             pass
 
         try:
             target_mtime = target_path.stat().st_mtime
-            target_time = datetime.fromtimestamp(target_mtime).strftime("%Y-%m-%d %H:%M:%S")
+            target_time = datetime.fromtimestamp(target_mtime).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            )
             info(f"  Target modified: {target_time}", quiet=self.quiet)
         except (OSError, FileNotFoundError):
             pass

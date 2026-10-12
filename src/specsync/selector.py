@@ -105,7 +105,9 @@ def collect_repo_documents(config) -> tuple[list[SpecDocument], list[str]]:
     return documents, warnings
 
 
-def load_document(path: Path, *, relative: Path, workspace_path: Path, repo_path: Path) -> SpecDocument:
+def load_document(
+    path: Path, *, relative: Path, workspace_path: Path, repo_path: Path
+) -> SpecDocument:
     """Parse a single markdown file into a SpecDocument (raises FrontmatterError)."""
     text = read_text(path)
     result = _parse(path, text)

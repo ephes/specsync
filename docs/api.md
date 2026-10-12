@@ -53,4 +53,4 @@ The following enhancements are planned:
 - Webhook support for automated synchronization
 - REST API for integration with other tools
 
-For the latest updates, see the [project repository](https://github.com/username/specsync).
+For the latest updates, see the [project repository](https://github.com/ephes/specsync).

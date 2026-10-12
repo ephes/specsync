@@ -50,12 +50,16 @@ def parse_frontmatter(text: str, *, path: Path) -> FrontmatterResult:
         except yaml.YAMLError as exc:
             line = getattr(exc, "problem_mark", None)
             line_num = getattr(line, "line", None)
-            raise FrontmatterError(path=path, message=str(exc), line=(line_num + 1) if line_num is not None else None) from exc
+            raise FrontmatterError(
+                path=path,
+                message=str(exc),
+                line=(line_num + 1) if line_num is not None else None,
+            ) from exc
 
     if not isinstance(data, dict):
         raise FrontmatterError(path=path, message="Frontmatter must be a mapping")
 
-    body = normalized[match.end():]
+    body = normalized[match.end() :]
     body = body.lstrip("\n")
 
     return FrontmatterResult(frontmatter=data, body=body, had_frontmatter=True)

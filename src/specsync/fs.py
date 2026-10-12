@@ -27,7 +27,9 @@ def _default_file_mode() -> int:
     return 0o666 & ~umask
 
 
-def _write_bytes_atomic(path: Path, data: bytes, *, stat_source: Path | None = None) -> None:
+def _write_bytes_atomic(
+    path: Path, data: bytes, *, stat_source: Path | None = None
+) -> None:
     """Write ``data`` to ``path`` via a fresh temp file and an atomic rename.
 
     The temp file is created exclusively (``mkstemp``), so a pre-existing file or
@@ -36,7 +38,9 @@ def _write_bytes_atomic(path: Path, data: bytes, *, stat_source: Path | None = N
     followed (callers still refuse symlinked destinations up front).
     """
     ensure_dir(path.parent)
-    fd, temp_name = tempfile.mkstemp(dir=path.parent, prefix=".specsync-", suffix=".tmp")
+    fd, temp_name = tempfile.mkstemp(
+        dir=path.parent, prefix=".specsync-", suffix=".tmp"
+    )
     temp_path = Path(temp_name)
     try:
         with os.fdopen(fd, "wb") as handle:
@@ -161,7 +165,9 @@ def is_within(base: Path, target: Path) -> bool:
         return False
 
 
-def validate_path_security(path: Path, root: Path, follow_symlinks: bool = False) -> None:
+def validate_path_security(
+    path: Path, root: Path, follow_symlinks: bool = False
+) -> None:
     """Validate that a path is safe to access within the given root.
 
     Args:
@@ -192,7 +198,9 @@ def copy_file(source: Path, target: Path) -> None:
     _write_bytes_atomic(target, source.read_bytes(), stat_source=source)
 
 
-def append_gitignore(repo_root: Path, entry: str, comment: str = "Added by specsync") -> None:
+def append_gitignore(
+    repo_root: Path, entry: str, comment: str = "Added by specsync"
+) -> None:
     """Append an entry to .gitignore if not already present.
 
     Args:

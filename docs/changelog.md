@@ -71,11 +71,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - 100% test coverage target
 
 - **Continuous Integration**
-  - GitHub Actions workflow running `ruff check` and `pytest` on Python 3.11 and 3.13 (actions pinned by
+  - GitHub Actions workflow running `ruff check`, `ruff format --check` and `pytest` on Python 3.11 and 3.13 (actions pinned by
     SHA, `permissions: contents: read`)
 
 ### Changed
-- N/A (Initial release)
+- Normalize the Python formatting baseline to match the required nonwriting format check in `just check` and CI.
 
 ### Deprecated
 - N/A
