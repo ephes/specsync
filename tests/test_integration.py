@@ -1,7 +1,5 @@
 """Integration tests for specsync."""
 
-
-
 from specsync.cli import main
 
 

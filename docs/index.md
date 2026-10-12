@@ -30,5 +30,5 @@ api
 
 ## Additional Resources
 
-- Source code: <https://github.com/username/specsync>
+- Source code: <https://github.com/ephes/specsync>
 - {doc}`Architecture Overview <architecture>` - detailed system design and component documentation

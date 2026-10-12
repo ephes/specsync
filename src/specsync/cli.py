@@ -21,7 +21,9 @@ from .sync import (
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="specsync", description="Synchronize specifications between vault and repo")
+    parser = argparse.ArgumentParser(
+        prog="specsync", description="Synchronize specifications between vault and repo"
+    )
 
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--workspace-root", dest="workspace_root")
@@ -35,11 +37,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command")
 
-    subparsers.add_parser("pull", parents=[op_parent], help="Pull specs from workspace to repo")
-    subparsers.add_parser("push", parents=[op_parent], help="Push specs from repo to workspace")
+    subparsers.add_parser(
+        "pull", parents=[op_parent], help="Pull specs from workspace to repo"
+    )
+    subparsers.add_parser(
+        "push", parents=[op_parent], help="Push specs from repo to workspace"
+    )
     subparsers.add_parser("info", parents=[common], help="Show resolved configuration")
-    init_parser = subparsers.add_parser("init", parents=[common], help="Initialize specsync in this repo")
-    init_parser.add_argument("--include-sample", action="store_true", dest="include_sample")
+    init_parser = subparsers.add_parser(
+        "init", parents=[common], help="Initialize specsync in this repo"
+    )
+    init_parser.add_argument(
+        "--include-sample", action="store_true", dest="include_sample"
+    )
 
     parser.add_argument("--version", action="version", version="specsync 0.1.0")
 
@@ -135,7 +145,9 @@ def _cmd_info(args) -> int:
 def _cmd_init(args) -> int:
     repo_root = find_repo_root(Path.cwd())
     if repo_root is None:
-        raise ConfigError("Unable to locate git repository root. Run specsync init inside a git repo.")
+        raise ConfigError(
+            "Unable to locate git repository root. Run specsync init inside a git repo."
+        )
 
     pyproject_path = repo_root / "pyproject.toml"
     if not pyproject_path.exists():
@@ -156,14 +168,16 @@ def _ensure_specs_dir(repo_root: Path, args) -> None:
     if getattr(args, "include_sample", False):
         sample = target / "sample-spec.md"
         if not sample.exists():
-            sample.write_text("---\nexpose: true\n---\n\n# Sample Specification\n", encoding="utf-8")
+            sample.write_text(
+                "---\nexpose: true\n---\n\n# Sample Specification\n", encoding="utf-8"
+            )
 
 
 def _ensure_pyproject_block(path: Path) -> None:
     data = path.read_text(encoding="utf-8")
     if "[tool.specsync]" in data:
         return
-    block = "\n[tool.specsync]\nworkspace_subdir = \"specs\"\nrepo_specs_dir = \"specs\"\n\n[tool.specsync.filter]\nrequire_expose = true\nmatch_project = true\n"
+    block = '\n[tool.specsync]\nworkspace_subdir = "specs"\nrepo_specs_dir = "specs"\n\n[tool.specsync.filter]\nrequire_expose = true\nmatch_project = true\n'
     with path.open("a", encoding="utf-8") as handle:
         handle.write(block)
 

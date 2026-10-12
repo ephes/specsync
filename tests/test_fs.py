@@ -1,6 +1,5 @@
 """Tests for filesystem utilities."""
 
-
 import pytest
 
 from specsync.fs import (

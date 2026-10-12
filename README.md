@@ -155,6 +155,12 @@ Only notes with `expose: true` (and matching `project` when configured) are sync
 
 ---
 
+## Development checks
+
+Run `just check` for Ruff lint, the nonwriting Ruff format check, and pytest.
+GitHub Actions runs the same checks on Python 3.11 and 3.13. Run `just docs-check`
+when changing documentation. Use `just format` to apply formatting locally.
+
 ## License
 
 MIT

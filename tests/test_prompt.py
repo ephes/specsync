@@ -17,7 +17,7 @@ class TestPromptEngine:
         """Test that non-interactive mode raises an error."""
         engine = PromptEngine(quiet=False)
 
-        with patch.object(sys.stdin, 'isatty', return_value=False):
+        with patch.object(sys.stdin, "isatty", return_value=False):
             with pytest.raises(InteractiveError) as exc_info:
                 engine.confirm(Path("test.md"), Path("other.md"))
             assert "rerun with --force" in str(exc_info.value)
@@ -26,8 +26,8 @@ class TestPromptEngine:
         """Test that 'all-overwrite' sets persistent state."""
         engine = PromptEngine(quiet=False)
 
-        with patch.object(sys.stdin, 'isatty', return_value=True):
-            with patch('builtins.input', return_value='A'):
+        with patch.object(sys.stdin, "isatty", return_value=True):
+            with patch("builtins.input", return_value="A"):
                 choice = engine.confirm(Path("test.md"), Path("other.md"))
                 assert choice == "overwrite"
                 assert engine.state.overwrite_all is True
@@ -40,8 +40,8 @@ class TestPromptEngine:
         """Test that 'skip-all' sets persistent state."""
         engine = PromptEngine(quiet=False)
 
-        with patch.object(sys.stdin, 'isatty', return_value=True):
-            with patch('builtins.input', return_value='S'):
+        with patch.object(sys.stdin, "isatty", return_value=True):
+            with patch("builtins.input", return_value="S"):
                 choice = engine.confirm(Path("test.md"), Path("other.md"))
                 assert choice == "skip"
                 assert engine.state.skip_all is True
@@ -54,8 +54,8 @@ class TestPromptEngine:
         """Test that 'quit' raises InteractiveError."""
         engine = PromptEngine(quiet=False)
 
-        with patch.object(sys.stdin, 'isatty', return_value=True):
-            with patch('builtins.input', return_value='q'):
+        with patch.object(sys.stdin, "isatty", return_value=True):
+            with patch("builtins.input", return_value="q"):
                 with pytest.raises(InteractiveError) as exc_info:
                     engine.confirm(Path("test.md"), Path("other.md"))
                 assert "User quit" in str(exc_info.value)
@@ -64,8 +64,8 @@ class TestPromptEngine:
         """Test that 'diff' returns the correct choice."""
         engine = PromptEngine(quiet=False)
 
-        with patch.object(sys.stdin, 'isatty', return_value=True):
-            with patch('builtins.input', return_value='d'):
+        with patch.object(sys.stdin, "isatty", return_value=True):
+            with patch("builtins.input", return_value="d"):
                 choice = engine.confirm(Path("test.md"), Path("other.md"))
                 assert choice == "diff"
 
@@ -73,8 +73,8 @@ class TestPromptEngine:
         """Test that 'o' returns overwrite."""
         engine = PromptEngine(quiet=False)
 
-        with patch.object(sys.stdin, 'isatty', return_value=True):
-            with patch('builtins.input', return_value='o'):
+        with patch.object(sys.stdin, "isatty", return_value=True):
+            with patch("builtins.input", return_value="o"):
                 choice = engine.confirm(Path("test.md"), Path("other.md"))
                 assert choice == "overwrite"
 
@@ -82,8 +82,8 @@ class TestPromptEngine:
         """Test that 's' returns skip."""
         engine = PromptEngine(quiet=False)
 
-        with patch.object(sys.stdin, 'isatty', return_value=True):
-            with patch('builtins.input', return_value='s'):
+        with patch.object(sys.stdin, "isatty", return_value=True):
+            with patch("builtins.input", return_value="s"):
                 choice = engine.confirm(Path("test.md"), Path("other.md"))
                 assert choice == "skip"
 
@@ -91,13 +91,15 @@ class TestPromptEngine:
         """Test that invalid input causes a reprompt."""
         engine = PromptEngine(quiet=False)
 
-        with patch.object(sys.stdin, 'isatty', return_value=True):
-            with patch('builtins.input', side_effect=['x', 'invalid', 'o']):
-                with patch('specsync.prompt.info') as mock_info:
+        with patch.object(sys.stdin, "isatty", return_value=True):
+            with patch("builtins.input", side_effect=["x", "invalid", "o"]):
+                with patch("specsync.prompt.info") as mock_info:
                     choice = engine.confirm(Path("test.md"), Path("other.md"))
                     assert choice == "overwrite"
                     # Should have prompted for invalid inputs
-                    assert any("Please enter" in str(call) for call in mock_info.call_args_list)
+                    assert any(
+                        "Please enter" in str(call) for call in mock_info.call_args_list
+                    )
 
     def test_shows_modification_times(self, tmp_path):
         """Test that modification times are displayed when available."""
@@ -109,9 +111,9 @@ class TestPromptEngine:
         source.write_text("source content")
         target.write_text("target content")
 
-        with patch.object(sys.stdin, 'isatty', return_value=True):
-            with patch('builtins.input', return_value='s'):
-                with patch('specsync.prompt.info') as mock_info:
+        with patch.object(sys.stdin, "isatty", return_value=True):
+            with patch("builtins.input", return_value="s"):
+                with patch("specsync.prompt.info") as mock_info:
                     engine.confirm(source, target)
 
                     # Should show modification times in the prompt
@@ -122,8 +124,8 @@ class TestPromptEngine:
         """Test that EOFError is handled gracefully."""
         engine = PromptEngine(quiet=False)
 
-        with patch.object(sys.stdin, 'isatty', return_value=True):
-            with patch('builtins.input', side_effect=EOFError):
+        with patch.object(sys.stdin, "isatty", return_value=True):
+            with patch("builtins.input", side_effect=EOFError):
                 with pytest.raises(InteractiveError) as exc_info:
                     engine.confirm(Path("test.md"), Path("other.md"))
                 assert "No input available" in str(exc_info.value)
@@ -132,10 +134,10 @@ class TestPromptEngine:
         """Test that options are case-sensitive (capital letters for 'all' options)."""
         engine = PromptEngine(quiet=False)
 
-        with patch.object(sys.stdin, 'isatty', return_value=True):
+        with patch.object(sys.stdin, "isatty", return_value=True):
             # Lowercase 'a' should not trigger all-overwrite
-            with patch('builtins.input', side_effect=['a', 'o']):
-                with patch('specsync.prompt.info'):
+            with patch("builtins.input", side_effect=["a", "o"]):
+                with patch("specsync.prompt.info"):
                     choice = engine.confirm(Path("test.md"), Path("other.md"))
                     assert choice == "overwrite"
                     assert engine.state.overwrite_all is False

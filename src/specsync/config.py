@@ -38,7 +38,9 @@ class Config:
 def load_config(args: Any, *, command: str) -> Config:
     repo_root = find_repo_root(Path.cwd())
     if repo_root is None:
-        raise ConfigError("Unable to locate git repository root. Run specsync inside a git repo.")
+        raise ConfigError(
+            "Unable to locate git repository root. Run specsync inside a git repo."
+        )
 
     pyproject_data = _load_pyproject(repo_root / "pyproject.toml")
     tool_config = _get_tool_config(pyproject_data)
@@ -77,7 +79,9 @@ def load_config(args: Any, *, command: str) -> Config:
 def validate_paths(config: Config, *, command: str) -> None:
     if command == "pull":
         if not config.workspace_root.exists() and not config.dry_run:
-            raise ConfigError("Workspace root does not exist; set SPECSYNC_WORKSPACE_ROOT or create the directory.")
+            raise ConfigError(
+                "Workspace root does not exist; set SPECSYNC_WORKSPACE_ROOT or create the directory."
+            )
         if not config.workspace_specs_dir.exists() and not config.dry_run:
             raise ConfigError(
                 f"Workspace specs directory {config.workspace_specs_dir} not found. Create it or adjust workspace_subdir."
@@ -99,9 +103,13 @@ def _get_tool_config(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def _resolve_workspace_root(args: Any, tool_config: dict[str, Any]) -> Path:
-    candidate = getattr(args, "workspace_root", None) or os.getenv("SPECSYNC_WORKSPACE_ROOT")
+    candidate = getattr(args, "workspace_root", None) or os.getenv(
+        "SPECSYNC_WORKSPACE_ROOT"
+    )
     if not candidate:
-        raise ConfigError("Workspace root not configured. Use --workspace-root or SPECSYNC_WORKSPACE_ROOT.")
+        raise ConfigError(
+            "Workspace root not configured. Use --workspace-root or SPECSYNC_WORKSPACE_ROOT."
+        )
     return Path(candidate).expanduser().resolve()
 
 
