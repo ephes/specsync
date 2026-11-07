@@ -50,8 +50,11 @@ jobs:
       - name: Sync locked dependencies
         run: uv sync --all-groups
       - name: Lint (just lint)
-        run: uv run ruff check src tests
+        run: uv run ruff check src tests scripts
       - name: Formatting (just format-check)
-        run: uv run ruff format --check src/ tests/
+        run: uv run ruff format --check src/ tests/ scripts/
       - name: Tests (just test)
         run: uv run pytest -q
+
+      - name: Frozen all-group dependency audit
+        run: uv run python scripts/audit_dependencies.py

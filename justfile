@@ -17,22 +17,26 @@ test-coverage:
 
 # Run linter
 lint:
-    uv run ruff check src/ tests/
+    uv run ruff check src/ tests/ scripts/
 
 # Fix linting issues
 lint-fix:
-    uv run ruff check src/ tests/ --fix
+    uv run ruff check src/ tests/ scripts/ --fix
 
 # Format code
 format:
-    uv run ruff format src/ tests/
+    uv run ruff format src/ tests/ scripts/
 
 # Check formatting
 format-check:
-    uv run ruff format --check src/ tests/
+    uv run ruff format --check src/ tests/ scripts/
 
 # Run all checks (lint + format + tests)
 check: lint format-check test
+
+# Audit frozen runtime + all development/documentation groups (network required)
+audit:
+    uv run --frozen python scripts/audit_dependencies.py
 
 # Install development dependencies
 install:
