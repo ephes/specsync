@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - `pull --force` right after a `push` no longer writes the workspace's injected frontmatter into the repo.
 
 ### Security
+- Refresh affected development/docs dependency pins and require a pinned, frozen all-group advisory audit in CI. Runtime requirements are unchanged.
 - Symlinked destinations are refused instead of followed: a symlinked destination file, intermediate
   directory or backup path is planned as `UNSAFE`, skipped, and makes the run exit with status 1.
 - Atomic writes use an exclusive temp file instead of a predictable `<file>.tmp` path.

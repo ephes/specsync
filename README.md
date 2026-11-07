@@ -179,6 +179,17 @@ Run `just check` for Ruff lint, the nonwriting Ruff format check, and pytest.
 GitHub Actions runs the same checks on Python 3.11 and 3.13. Run `just docs-check`
 when changing documentation. Use `just format` to apply formatting locally.
 
+`just audit` exports all groups from `uv.lock` with `--frozen` and runs
+`pip-audit==2.10.1` (the top-level auditor version is fixed); export, advisory-service, and vulnerability failures fail the
+separate CI audit step. It never updates the project lock or resolves project
+dependencies. uv resolves the auditor's own transitive tooling dependencies separately;
+those are not frozen by the project lock. Exported
+markers are evaluated for the running interpreter/platform (CI: Linux, Python 3.11
+and 3.13), rather than claiming coverage of every supported platform. The project
+itself is excluded as an unpublished local package. The refreshed packages are in
+the development/docs graph; runtime requirements are unchanged. Advisory lookup
+requires network access and stays separate from the offline source tests.
+
 ## License
 
 MIT
