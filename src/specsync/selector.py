@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .exceptions import FrontmatterError
 from .frontmatter import FrontmatterResult, parse_frontmatter
-from .fs import is_within, iter_markdown_files, read_text
+from .fs import is_within, iter_markdown_files, snapshot_file
 from .models import SpecDocument
 
 
@@ -23,7 +23,8 @@ def collect_workspace_documents(config) -> tuple[list[SpecDocument], list[str]]:
             warnings.append(f"Skipping out-of-tree file in workspace: {path}")
             continue
 
-        text = read_text(path)
+        snapshot = snapshot_file(path)
+        text = snapshot.data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
         result = _parse(path, text)
         frontmatter = result.frontmatter or {}
         metadata_status = "valid"
@@ -58,6 +59,7 @@ def collect_workspace_documents(config) -> tuple[list[SpecDocument], list[str]]:
                 body=result.body,
                 metadata_status=metadata_status,
                 raw_text=text,
+                source_snapshot=snapshot,
             )
         )
 
@@ -77,7 +79,8 @@ def collect_repo_documents(config) -> tuple[list[SpecDocument], list[str]]:
             warnings.append(f"Skipping out-of-tree file in repo: {path}")
             continue
 
-        text = read_text(path)
+        snapshot = snapshot_file(path)
+        text = snapshot.data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
         result = _parse(path, text)
         frontmatter = result.frontmatter or {}
         metadata_status = "valid"
@@ -99,6 +102,7 @@ def collect_repo_documents(config) -> tuple[list[SpecDocument], list[str]]:
                 body=result.body,
                 metadata_status=metadata_status,
                 raw_text=text,
+                source_snapshot=snapshot,
             )
         )
 
@@ -109,7 +113,8 @@ def load_document(
     path: Path, *, relative: Path, workspace_path: Path, repo_path: Path
 ) -> SpecDocument:
     """Parse a single markdown file into a SpecDocument (raises FrontmatterError)."""
-    text = read_text(path)
+    snapshot = snapshot_file(path)
+    text = snapshot.data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
     result = _parse(path, text)
     frontmatter = result.frontmatter or {}
     metadata_status = "valid"
@@ -125,6 +130,7 @@ def load_document(
         body=result.body,
         metadata_status=metadata_status,
         raw_text=text,
+        source_snapshot=snapshot,
     )
 
 

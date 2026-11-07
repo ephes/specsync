@@ -12,6 +12,12 @@ PlanState = Literal["create", "update", "conflict", "skip", "unsafe"]
 SyncDirection = Literal["pull", "push"]
 
 
+@dataclass(frozen=True)
+class FileSnapshot:
+    identity: tuple[int, int, int, int, int]
+    data: bytes
+
+
 @dataclass
 class SpecDocument:
     relative_path: Path
@@ -21,6 +27,7 @@ class SpecDocument:
     body: str
     metadata_status: MetadataStatus
     raw_text: str
+    source_snapshot: FileSnapshot | None = None
 
 
 @dataclass
@@ -30,6 +37,7 @@ class PlanEntry:
     target_path: Path
     state: PlanState
     reason: str | None = None
+    target_snapshot: FileSnapshot | None = None
 
 
 @dataclass
