@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # Specsync Technical Specification
 
 ## 1. Purpose and Scope

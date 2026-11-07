@@ -1,4 +1,5 @@
 ---
+orphan: true
 title: Documentation Specification
 status: approved
 ---
@@ -89,7 +90,7 @@ FIXME: add build directory to .gitignore
 #### 3.1 Just Commands
 The following commands MUST be available in the `justfile`:
 
-```just
+```make
 # Build documentation
 docs-build:
     sphinx-build -b html docs docs/_build/html

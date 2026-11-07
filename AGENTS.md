@@ -13,7 +13,11 @@
 - ``just lint`` / ``just lint-fix`` — run Ruff (and autofix when requested).
 - ``just format`` / ``just format-check`` — apply or verify formatting with Ruff.
 - ``just test`` / ``just test-coverage`` — execute pytest suites, optionally with coverage reporting.
-- ``just docs-build`` / ``just docs-serve`` / ``just docs-watch`` — build, preview, and live-reload the documentation site.
+- ``just docs-build`` — required clean, warning-free HTML documentation check (also in CI).
+- ``just docs-check`` — separate network-dependent external link check.
+- ``just docs-serve`` / ``just docs-watch`` — preview and live-reload the documentation site.
+- ``just package-smoke`` — build wheel/sdist and validate isolated installed CLIs (also in CI).
+- ``just audit`` — audit frozen all-group dependencies (also in CI; network required).
 
 ## Coding Style & Naming Conventions
 - Python code targets 3.11+, uses 4-space indentation, and follows Ruff’s defaults for linting and formatting.
@@ -31,5 +35,5 @@
 - PRs should describe motivation, summarize changes, link the relevant documentation/spec updates, and note manual test steps or screenshots if behavior changes.
 
 ## Documentation Workflow
-- Update Markdown guides under `docs/` alongside feature work and run ``just docs-check`` to catch broken links.
+- Update Markdown guides under `docs/` alongside feature work and run ``just docs-build`` for the required strict HTML check. Run ``just docs-check`` separately to check external links; identify network failures separately.
 - When architecture decisions change, refresh both `docs/architecture.md` and the root `ARCHITECTURE.md` summary.
