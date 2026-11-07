@@ -176,8 +176,18 @@ Only notes with `expose: true` (and matching `project` when configured) are sync
 ## Development checks
 
 Run `just check` for Ruff lint, the nonwriting Ruff format check, and pytest.
-GitHub Actions runs the same checks on Python 3.11 and 3.13. Run `just docs-check`
-when changing documentation. Use `just format` to apply formatting locally.
+GitHub Actions runs these checks and the additional gates below on Python 3.11 and 3.13.
+Run `just docs-build` when changing documentation. It performs a clean, warning-free
+HTML build (`sphinx-build -E -W --keep-going -b html docs docs/_build/html`) and is
+required in CI. Historical design pages are intentionally outside the current guide
+tree. External link checks stay in `just docs-check`, separate from the strict HTML
+gate so network failures can be identified separately. Use `just format` locally.
+
+Run `just package-smoke` to build both wheel and sdist, install each in its own
+fresh environment, and check installed imports, help/version, and synthetic
+pull/push dry-runs from outside the checkout. It verifies fixture files and
+directories stay unchanged. CI runs this gate on both interpreters; builds and
+installs need access to package indexes. This does not publish artifacts.
 
 `just audit` exports all groups from `uv.lock` with `--frozen` and runs
 `pip-audit==2.10.1` (the top-level auditor version is fixed); export, advisory-service, and vulnerability failures fail the

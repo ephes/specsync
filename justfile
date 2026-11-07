@@ -46,6 +46,10 @@ install:
 build:
     uv build
 
+# Build wheel/sdist and smoke their installed CLIs in isolated environments
+package-smoke:
+    uv run --frozen python scripts/distribution_smoke.py
+
 # Clean build artifacts
 clean:
     rm -rf dist/ build/ *.egg-info
@@ -85,7 +89,7 @@ run *args:
 
 # Build documentation
 docs-build:
-    uv run sphinx-build -b html docs docs/_build/html
+    uv run sphinx-build -E -W --keep-going -b html docs docs/_build/html
 
 # View documentation locally
 docs-serve:

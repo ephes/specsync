@@ -74,6 +74,10 @@ graph TD
 - **Conflict Resolution**: When the files differ, prompt the user unless `--force` is supplied.
 - **Apply Changes**: Copy the existing destination to `<file>.specsync-bak`, then write through an exclusive
   temp file and an atomic `os.replace`, preserving directory structure.
+  Plans capture source identity/bytes and destination state, checked again after prompts.
+  Diffs and writes use the source snapshot; changed plans are refused and must be rerun.
+  Creates publish exclusively using a hard link, falling back to exclusive open on
+  filesystems without hard-link support. See {doc}`usage` for concurrency limitations.
 
 ## Frontmatter Filtering Logic
 

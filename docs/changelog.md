@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 
 ### Fixed
+- Mark historical design documents as orphaned and use a supported code lexer so clean strict HTML builds pass.
 - Refuse stale source/target snapshots after planning and confirmation; publish creates exclusively so concurrent notes are preserved, including with `--force`.
 - Dry-run no longer creates missing repository directories; missing sources are diagnosed with an empty plan.
 - Init parses and preserves existing TOML tables, settings and comments, adds missing defaults, and replaces validated configuration atomically.
@@ -24,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Overwriting an existing destination first copies it to `<file>.specsync-bak`; if that backup cannot be written, the file is not overwritten.
 
 ### Added
+- Required strict, warning-free HTML documentation builds and isolated wheel/sdist installed CLI smoke checks in CI, with matching local commands.
 - **Core CLI Application**
   - `specsync init` command to initialize a repository with specs directory
   - `specsync pull` command to sync specs from workspace to repository
