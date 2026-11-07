@@ -9,7 +9,7 @@ from pathlib import Path
 from .config import Config
 from .exceptions import ConfigError, FrontmatterError, SpecsyncError
 from .frontmatter import render_frontmatter
-from .fs import backup_file, copy_file, unsafe_destination_reason, write_file_atomic
+from .fs import backup_file, snapshot_file, unsafe_destination_reason, write_file_atomic
 from .logging import info, warn
 from .models import ExecutionStats, PlanEntry, SpecDocument, SyncPlan
 from .prompt import PromptEngine
@@ -33,6 +33,9 @@ def build_pull_plan(config: Config) -> SyncPlan:
         source = doc.workspace_path
         target = doc.repo_path
         unsafe = unsafe_destination_reason(target, config.repo_specs_dir)
+        target_snapshot = (
+            snapshot_file(target) if not unsafe and target.exists() else None
+        )
         if unsafe:
             state = "unsafe"
             reason = f"refused: {unsafe}"
@@ -53,6 +56,7 @@ def build_pull_plan(config: Config) -> SyncPlan:
                 target_path=target,
                 state=state,
                 reason=reason,
+                target_snapshot=target_snapshot,
             )
         )
 
@@ -67,6 +71,9 @@ def build_push_plan(config: Config) -> SyncPlan:
         source = doc.repo_path
         target = doc.workspace_path
         unsafe = unsafe_destination_reason(target, config.workspace_specs_dir)
+        target_snapshot = (
+            snapshot_file(target) if not unsafe and target.exists() else None
+        )
         if unsafe:
             state = "unsafe"
             reason = f"refused: {unsafe}"
@@ -89,6 +96,7 @@ def build_push_plan(config: Config) -> SyncPlan:
                 target_path=target,
                 state=state,
                 reason=reason,
+                target_snapshot=target_snapshot,
             )
         )
 
@@ -191,7 +199,23 @@ def _write(entry: PlanEntry, direction: str, config: Config) -> bool:
     if unsafe:
         warn(f"Refusing unsafe destination ({unsafe}): {target}")
         return False
-    if target.exists():
+    try:
+        source_root = (
+            config.workspace_specs_dir if direction == "pull" else config.repo_specs_dir
+        )
+        if unsafe_destination_reason(entry.source_path, source_root):
+            raise OSError("source path became unsafe")
+        if snapshot_file(entry.source_path) != entry.document.source_snapshot:
+            raise OSError("source changed since planning; rerun sync")
+        if entry.target_snapshot is None:
+            if target.exists():
+                raise OSError("destination appeared since planning; rerun sync")
+        elif snapshot_file(target) != entry.target_snapshot:
+            raise OSError("destination changed since planning; rerun sync")
+    except OSError as exc:
+        warn(f"Refusing stale plan for {target}: {exc}")
+        return False
+    if entry.target_snapshot is not None:
         try:
             backup = backup_file(target)
         except OSError as exc:
@@ -200,21 +224,23 @@ def _write(entry: PlanEntry, direction: str, config: Config) -> bool:
             warn(f"Refusing to overwrite {target}: cannot write backup ({exc})")
             return False
         info(f"Backed up {target} to {backup.name}", quiet=config.quiet)
-    _copy(entry.source_path, target, direction, entry.document, config)
+    try:
+        payload = (
+            _prepare_push_payload(entry.document, config)
+            if direction == "push"
+            else entry.document.source_snapshot.data.decode("utf-8")
+        )
+        write_file_atomic(
+            target,
+            payload,
+            exclusive=entry.target_snapshot is None,
+            expected=entry.target_snapshot,
+            stat_source=entry.source_path if direction == "pull" else None,
+        )
+    except OSError as exc:
+        warn(f"Refusing publication to {target}: {exc}")
+        return False
     return True
-
-
-def _copy(source: Path, target: Path, direction: str, doc, config: Config) -> None:
-    if direction == "pull":
-        copy_file(source, target)
-        return
-
-    if direction == "push":
-        payload = _prepare_push_payload(doc, config)
-        write_file_atomic(target, payload)
-        return
-
-    raise ConfigError(f"Unknown direction: {direction}")
 
 
 def _prepare_push_payload(doc, config: Config) -> str:
@@ -259,7 +285,7 @@ def _show_diff(entry: PlanEntry, direction: str, config: Config) -> None:
     if direction == "push":
         source_text = _prepare_push_payload(entry.document, config)
     else:
-        source_text = source.read_text(encoding="utf-8") if source.exists() else ""
+        source_text = entry.document.source_snapshot.data.decode("utf-8")
     target_text = target.read_text(encoding="utf-8") if target.exists() else ""
     diff = difflib.unified_diff(
         target_text.splitlines(),

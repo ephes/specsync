@@ -89,3 +89,14 @@ Dry-run in either direction is read-only: it creates no directories, files, or
 backups. A missing source specs directory produces an empty plan and a diagnostic
 (unless quiet). A missing pull destination is still shown in the plan; actual
 pull execution creates it. Use init to create an empty repo specs directory.
+
+### Changes during confirmation
+
+Stale plans are refused. Source identity and bytes and destination state are checked again
+  after prompts and before writing, even with `--force`. Changed, replaced or removed sources,
+  new destinations, and edited overwrite targets require rerunning sync; a refused entry exits 1.
+  Diff and publication use the planned source snapshot. New files are published exclusively.
+  These checks detect edits across planning/confirmation, but do not lock out other editors;
+  an overwrite can still race with an edit after the final check, and an edit during backup
+  creation may replace an earlier backup before refusal. Without filesystem hard-link support,
+  exclusive creation remains safe from overwrite but readers may see a partially written new file.

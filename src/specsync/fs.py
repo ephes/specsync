@@ -12,6 +12,32 @@ from pathlib import Path
 from typing import Iterable
 
 from .exceptions import SecurityError
+from .models import FileSnapshot
+
+
+class StaleFileError(OSError):
+    """A file no longer matches the planned snapshot."""
+
+
+def snapshot_file(path: Path) -> FileSnapshot:
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode):
+        raise StaleFileError(f"Not a regular file: {path}")
+    data = path.read_bytes()
+    after = path.lstat()
+    fields = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+    if any(getattr(before, field) != getattr(after, field) for field in fields):
+        raise StaleFileError(f"File changed while reading: {path}")
+    return FileSnapshot(
+        (
+            before.st_dev,
+            before.st_ino,
+            before.st_size,
+            before.st_mtime_ns,
+            before.st_ctime_ns,
+        ),
+        data,
+    )
 
 
 def ensure_dir(path: Path) -> None:
@@ -28,7 +54,12 @@ def _default_file_mode() -> int:
 
 
 def _write_bytes_atomic(
-    path: Path, data: bytes, *, stat_source: Path | None = None
+    path: Path,
+    data: bytes,
+    *,
+    stat_source: Path | None = None,
+    exclusive: bool = False,
+    expected: FileSnapshot | None = None,
 ) -> None:
     """Write ``data`` to ``path`` via a fresh temp file and an atomic rename.
 
@@ -51,14 +82,63 @@ def _write_bytes_atomic(
             shutil.copymode(path, temp_path)
         else:
             os.chmod(temp_path, _default_file_mode())
-        os.replace(temp_path, path)
+        if exclusive:
+            # Publish the completed inode only if the destination is still absent.
+            try:
+                os.link(temp_path, path)
+            except OSError as exc:
+                if exc.errno not in {
+                    errno.EPERM,
+                    errno.ENOTSUP,
+                    errno.EXDEV,
+                    errno.ENOSYS,
+                }:
+                    raise
+                # Filesystems without hard links still get exclusive creation.
+                # Readers may see a partial file until this fallback finishes.
+                created_stat = None
+                try:
+                    with path.open("xb") as handle:
+                        created_stat = os.fstat(handle.fileno())
+                        handle.write(data)
+                    shutil.copystat(temp_path, path)
+                except BaseException:
+                    # Best-effort cleanup: check identity before removing our inode.
+                    try:
+                        current = path.lstat()
+                        if created_stat is not None and (
+                            current.st_dev,
+                            current.st_ino,
+                        ) == (created_stat.st_dev, created_stat.st_ino):
+                            path.unlink()
+                    except OSError:
+                        pass
+                    raise
+            temp_path.unlink()
+        else:
+            if expected is not None and snapshot_file(path) != expected:
+                raise StaleFileError(f"Destination changed: {path}")
+            os.replace(temp_path, path)
     except BaseException:
         temp_path.unlink(missing_ok=True)
         raise
 
 
-def write_file_atomic(path: Path, content: str) -> None:
-    _write_bytes_atomic(path, content.encode("utf-8"))
+def write_file_atomic(
+    path: Path,
+    content: str,
+    *,
+    exclusive: bool = False,
+    expected: FileSnapshot | None = None,
+    stat_source: Path | None = None,
+) -> None:
+    _write_bytes_atomic(
+        path,
+        content.encode("utf-8"),
+        exclusive=exclusive,
+        expected=expected,
+        stat_source=stat_source,
+    )
 
 
 def backup_path_for(path: Path) -> Path:

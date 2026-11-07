@@ -156,6 +156,14 @@ Only notes with `expose: true` (and matching `project` when configured) are sync
   right after a `push` therefore leaves the repo file untouched.
 - **Real edits still conflict.** Any other difference is a `CONFLICT`, prompted for interactively or
   overwritten with `--force`.
+- **Stale plans are refused.** Source identity and bytes and destination state are checked again
+  after prompts and before writing, even with `--force`. Changed, replaced or removed sources,
+  new destinations, and edited overwrite targets require rerunning sync; a refused entry exits 1.
+  Diff and publication use the planned source snapshot. New files are published exclusively.
+  These checks detect edits across planning/confirmation, but do not lock out other editors;
+  an overwrite can still race with an edit after the final check, and an edit during backup
+  creation may replace an earlier backup before refusal. On filesystems without hard links,
+  exclusive creation remains safe from overwrite but readers may see a partially written new file.
 - **Backups.** Before overwriting an existing file, SpecSync copies it to `<file>.specsync-bak` next to
   it (replacing an older backup). Backups do not end in `.md`, so they are never synced.
 - **Destinations are never followed through symlinks.** If the destination file, any directory between
